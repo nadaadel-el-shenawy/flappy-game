@@ -1,0 +1,102 @@
+import pygame
+import random
+
+# Define colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
+# Set screen dimensions
+SCREEN_WIDTH = 400
+SCREEN_HEIGHT = 600
+
+class Bird(pygame.sprite.Sprite):
+    """ This class represents the bird """
+
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load("bird.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = SCREEN_WIDTH // 2 - self.rect.width // 2
+        self.rect.y = SCREEN_HEIGHT // 2 - self.rect.height // 2
+        self.velocity = 0
+
+    def update(self):
+        self.velocity += 1
+        self.rect.y += self.velocity
+
+    def jump(self):
+        self.velocity = -10
+
+class Pipe(pygame.sprite.Sprite):
+    """ This class represents a pipe """
+
+    def __init__(self, position):
+        super().__init__()
+        self.image = pygame.image.load("pipe.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = position
+
+    def update(self):
+        self.rect.x -= 2
+
+class Game:
+    """ This class represents the game """
+
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 36)
+        self.score = 0
+        self.bird = Bird()
+        self.pipes = pygame.sprite.Group()
+        self.pipe_frequency = 100
+
+    def run(self):
+        running = True
+        while running:
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.bird.jump()
+
+            # Add pipes
+            if self.pipe_frequency == 0:
+                position = SCREEN_WIDTH, random.randint(0, SCREEN_HEIGHT // 2)
+                pipe = Pipe(position)
+                self.pipes.add(pipe)
+                self.pipe_frequency = 100 - self.score // 10
+            else:
+                self.pipe_frequency -= 1
+
+            # Update sprites
+            self.bird.update()
+            self.pipes.update()
+
+            # Check for collisions
+            if pygame.sprite.spritecollideany(self.bird, self.pipes):
+                running = False
+
+            # Draw sprites
+            self.screen.fill(BLACK)
+            self.pipes.draw(self.screen)
+            self.screen.blit(self.bird.image, self.bird.rect)
+
+            # Update score
+            self.score = len([pipe for pipe in self.pipes if pipe.rect.right < self.bird.rect.left])
+            score_text = self.font.render(str(self.score), True, WHITE)
+            self.screen.blit(score_text, (10, 10))
+
+            pygame.display.flip()
+
+            # Set the frame rate
+            self.clock.tick(60)
+
+        pygame.quit()
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()
